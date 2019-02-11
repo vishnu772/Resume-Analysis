@@ -1,0 +1,142 @@
+"""
+We search all the resumes in a folder in the form of pdf and then converted to textfiles using tesseract and then applied NLTK word tokenize by removing stopwords
+and then saveing all words in a dictionary
+Then we can loop through the dictinary for searching the desired skills if found they will be counted adn final result will print number of skills matched on 
+each of the person.
+Here person name was the file name so just copied the file name to represent as person name.
+It is just a basic way to look at resumes and find some useful imformation. 
+"""
+#this First part of code will convert a pdf images into text files and save them in a folder
+# We don't have to worry about multiple pages of pdf all of them will be appended in one text file
+
+import pytesseract
+from PIL import Image
+#These are configuration file indicating the executable path for tesseact
+pytesseract.pytesseract.tesseract_cmd = 'C:/Program Files (x86)/Tesseract-OCR/tesseract.exe'
+tessdata_dir_config = '-c preserve_interword_spaces=1 --tessdata-dir "C:\\Program Files (x86)\\Tesseract-OCR\\tessdata"'
+
+import os
+from wand.image import Image as wi
+import io
+
+input_path=r'C:\Users\kvish\Desktop\CHAITU\NLP\Resume analysis'
+output_path=r'C:\Users\kvish\Desktop\CHAITU\NLP\resumes_text'
+
+
+def pdf_save_text(in_path,out_path):
+    
+    for file in os.listdir(input_path):
+        Pdf_pages = wi(filename=input_path+'\\'+file, resolution=300)
+        Pdf_pages=Pdf_pages.convert("jpeg")
+        text=[]
+        for img in Pdf_pages.sequence:
+            pdf=wi(image=img)
+            tes=pdf.make_blob('jpeg')
+            im=Image.open(io.BytesIO(tes))
+            dd=pytesseract.image_to_string(im,config=tessdata_dir_config,lang='fra')
+            text.append(dd)
+        final_text=''.join(str(r) for v in text for r in v)
+        with open(output_path+"\\"+file+".txt","w+") as f:
+            f.write(final_text)
+    
+        
+pdf_save_text(input_path,output_path)        
+        
+    
+
+Pdf_pages = wi(filename=pf_path, resolution=300)
+Pdf_pages=Pdf_pages.convert("jpeg")
+for img in Pdf_pages.sequence:
+    text=[]
+    pdf=wi(image=img)
+    tes=pdf.make_blob('jpeg')
+    im=Image.open(io.BytesIO(tes))
+    dd=pytesseract.image_to_string(im,config=tessdata_dir_config,lang='fra')
+    text.append(dd)
+final_text=''.join(str(r) for v in text for r in v)
+
+
+
+##################################################################################################
+
+
+"""
+Here we take the text files and remove stopwords and tokenize them and save them in dictionary
+"""
+
+input_fo=r'C:\Users\kvish\Desktop\CHAITU\NLP\resumes_text'
+dict_1={}
+import os 
+from nltk.tokenize import word_tokenize, sent_tokenize
+from nltk.corpus import stopwords
+from  nltk import pos_tag
+
+stop_words = set(stopwords.words('french'))
+
+def store_dict(folder_name):
+    for file in os.listdir(folder_name):
+        
+        name=file.split('.')[0]
+        resume=open(folder_name+"\\"+file)
+        ts3=resume.readlines()
+        
+        #final_text=''.join(str(r) for v in ts3 for r in v)
+        str1 = ' '.join(str(e) for e in ts3)
+        sent=sent_tokenize(str1)
+        filtered_text=[]
+        for se in sent:
+            word=word_tokenize(se)
+            for wr in word:
+                if wr not in stop_words:
+                    filtered_text.append(wr.lower())
+        dict_1[name]=filtered_text         
+
+
+store_dict(input_fo)
+
+#########################################################################################
+
+"""
+Here we search the directory of words with the skills we want 
+
+"""
+
+###################search the skills#####################333    
+      
+def search_skills(list_of_skills):
+    list_of_candidates=[[]]
+    for key,val in dict_1.items():
+        count=0
+        for i in list_of_skills:
+            i=i.strip()
+            if len(i.split(" "))==1:
+                if i in val:
+                    count=count+1
+            elif len(i.split(" "))==2:
+                dd=i.split(" ")
+                if dd[0] in val and dd[1] in val:
+                    if abs(val.index(dd[0])-val.index(dd[1]))==1:
+                        count=count+1
+        if count>0:
+            list_of_candidates.append([key,count])
+    return list_of_candidates        
+            
+            
+        
+my_can=search_skills(["java ","big data","c++","machine learning","mysql","deep learning","javascript","eclipse","postgresql","méthode agile","spring","oracle"])            
+
+"""
+After the search we save them in a data frame so that we can access them easily
+"""
+
+import pandas as pd
+
+candidates=pd.DataFrame(my_can)
+
+candidates.columns=["Name","Number_of_matches"]
+
+
+
+
+
+
